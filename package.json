@@ -1,0 +1,25 @@
+{
+  "name": "turbin3-vault",
+  "module": "mod.ts",
+  "type": "module",
+  "scripts": {
+    "lint:fix": "biome lint --unsafe --error-on-warnings ./tests",
+    "lint": "biome lint --error-on-warnings .",
+    "test": "vitest --dir ./tests",
+    "generate:idl": "npm run generate:idl:ts && npm run generate:idl:json",
+    "generate:idl:ts": "anchor idl build --program-name vault --out-ts ./idl/vault.ts",
+    "generate:idl:json": "anchor idl build --program-name vault --out ./idl/vault.json"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vitest": "3.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@solana-program/system": "0.6.2",
+    "@solana/web3.js": "^1.98.0"
+  }
+}
