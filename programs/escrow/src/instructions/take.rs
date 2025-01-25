@@ -1,12 +1,40 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+    token_interface::{
+        close_account, transfer_checked, CloseAccount, Mint, TokenAccount, TokenInterface,
+        TransferChecked,
+    },
 };
 
 use crate::{Escrow, ESCROW_SEED};
 
-pub fn withdraw_spl_from_vault(ctx: &Context<TakeAccounts>) -> Result<()> {
+fn close_vault(ctx: &Context<TakeAccounts>) -> Result<()> {
+    let cpi_accounts = CloseAccount {
+        account: ctx.accounts.vault.to_account_info(),
+        authority: ctx.accounts.escrow.to_account_info(),
+        destination: ctx.accounts.maker.to_account_info(),
+    };
+    let maker_key = ctx.accounts.maker.key();
+    let seed = ctx.accounts.escrow.seed.to_le_bytes();
+
+    let seeds = [
+        ESCROW_SEED,
+        maker_key.as_ref(),
+        seed.as_ref(),
+        &[ctx.accounts.escrow.bump],
+    ];
+    let signature = &[&seeds[..]];
+    let cpi_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        cpi_accounts,
+        signature,
+    );
+
+    close_account(cpi_ctx)
+}
+
+fn withdraw_spl_from_vault(ctx: &Context<TakeAccounts>) -> Result<()> {
     let escrow = &ctx.accounts.escrow;
     let taker_ata = ctx.accounts.taker_ata_b.to_account_info();
     let mint_a = ctx.accounts.mint_a.to_account_info();
@@ -25,7 +53,7 @@ pub fn withdraw_spl_from_vault(ctx: &Context<TakeAccounts>) -> Result<()> {
     let signature = &[&seeds[..]];
 
     let cpi_accounts = TransferChecked {
-        authority: ctx.accounts.vault.to_account_info(),
+        authority: escrow.to_account_info(),
         from: ctx.accounts.vault.to_account_info(),
         mint: mint_a,
         to: taker_ata,
@@ -42,7 +70,7 @@ fn send_spl_to_maker(ctx: &Context<TakeAccounts>) -> Result<()> {
     let decimals = ctx.accounts.mint_b.decimals;
 
     let cpi_accounts = TransferChecked {
-        authority: ctx.accounts.taker_ata_b.to_account_info(),
+        authority: ctx.accounts.taker.to_account_info(),
         from: ctx.accounts.taker_ata_b.to_account_info(),
         mint: ctx.accounts.mint_b.to_account_info(),
         to: ctx.accounts.maker_ata_b.to_account_info(),
@@ -54,9 +82,8 @@ fn send_spl_to_maker(ctx: &Context<TakeAccounts>) -> Result<()> {
 }
 
 pub fn _take(ctx: Context<TakeAccounts>) -> Result<()> {
-    msg!("Taker taker");
-
     withdraw_spl_from_vault(&ctx)?;
+    close_vault(&ctx)?;
     send_spl_to_maker(&ctx)?;
 
     Ok(())
@@ -69,6 +96,9 @@ pub struct TakeAccounts<'info> {
     pub maker: SystemAccount<'info>,
     #[account(
         mut,
+        has_one = mint_a,
+        has_one = mint_b,
+        close = maker,
         seeds = [ESCROW_SEED, maker.key().as_ref(), escrow.seed.to_le_bytes().as_ref()],
         bump = escrow.bump
     )]
@@ -81,8 +111,7 @@ pub struct TakeAccounts<'info> {
     )]
     pub vault: InterfaceAccount<'info, TokenAccount>,
     #[account(
-        init_if_needed,
-        payer = taker,
+        mut,
         associated_token::mint = mint_b,
         associated_token::authority = taker,
         associated_token::token_program = token_program
@@ -91,7 +120,7 @@ pub struct TakeAccounts<'info> {
     #[account(
         init_if_needed,
         payer = taker,
-        associated_token::mint = mint_a,
+        associated_token::mint = mint_b,
         associated_token::authority = maker,
         associated_token::token_program = token_program
     )]

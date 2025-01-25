@@ -30,10 +30,13 @@ pub fn deposit_spl_into_vault(ctx: &Context<MakeAccounts>, amount: &u64) -> Resu
 
 pub fn _make(ctx: Context<MakeAccounts>, input: MakeInput) -> Result<()> {
     let escrow = &mut ctx.accounts.escrow;
-    escrow.bump = ctx.bumps.escrow;
-    escrow.mint_a = ctx.accounts.mint_a.key();
-    escrow.mint_b = ctx.accounts.mint_b.key();
-    escrow.receive = input.receive;
+    escrow.set_inner(Escrow {
+        bump: ctx.bumps.escrow,
+        mint_a: ctx.accounts.mint_a.key(),
+        mint_b: ctx.accounts.mint_b.key(),
+        receive: input.receive,
+        seed: input.seed,
+    });
 
     deposit_spl_into_vault(&ctx, &input.receive)
 }
