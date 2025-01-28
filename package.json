@@ -1,5 +1,5 @@
 {
-  "name": "turbin3-vault",
+  "name": "turbin3-escrow",
   "module": "mod.ts",
   "type": "module",
   "scripts": {
@@ -7,8 +7,8 @@
     "lint": "biome lint --error-on-warnings .",
     "test": "vitest --dir ./tests",
     "generate:idl": "npm run generate:idl:ts && npm run generate:idl:json",
-    "generate:idl:ts": "anchor idl build --program-name vault --out-ts ./idl/vault.ts",
-    "generate:idl:json": "anchor idl build --program-name vault --out ./idl/vault.json"
+    "generate:idl:ts": "anchor idl build --program-name escrow --out-ts ./idl/escrow.ts",
+    "generate:idl:json": "anchor idl build --program-name escrow --out ./idl/escrow.json"
   },
   "devDependencies": {
     "@types/bun": "latest",

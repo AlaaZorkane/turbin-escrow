@@ -14,7 +14,7 @@ pub use state::*;
 declare_id!("escSmDEY26evSYow7Nio1WtkNFneo95DTq83P4myqer");
 
 #[program]
-pub mod vault {
+pub mod escrow {
     use super::*;
 
     pub fn make(ctx: Context<MakeAccounts>, input: MakeInput) -> Result<()> {
